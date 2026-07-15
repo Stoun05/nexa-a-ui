@@ -6,24 +6,23 @@ import react from '@vitejs/plugin-react';
 
 const virtualRuntimeId = 'virtual:nexa-runtime';
 const resolvedVirtualRuntimeId = `\0${virtualRuntimeId}`;
-const expectedRuntimeHash = 'c19470b794df83bbf0084c46909915744339bd87403163c50ee01d5cccedc055';
+const expectedRuntimeHash = '73632bd31fcae142c661ff3777c5e213e03226a703f6d9221e449172df1deb3d';
 
 function nexaRuntimePlugin(): Plugin {
   return {
-    name: 'nexa-runtime',
+    name: 'nexa-runtime-v3',
     resolveId(id) {
       return id === virtualRuntimeId ? resolvedVirtualRuntimeId : null;
     },
     load(id) {
       if (id !== resolvedVirtualRuntimeId) return null;
 
-      const directory = fileURLToPath(new URL('./materialize/', import.meta.url));
-      const encoded = readdirSync(directory)
-        .filter((name) => name.startsWith('app-runtime.b64.part'))
+      const directory = fileURLToPath(new URL('./runtime-v3/', import.meta.url));
+      const source = readdirSync(directory)
+        .filter((name) => name.startsWith('App.part') && name.endsWith('.tsx'))
         .sort()
-        .map((name) => readFileSync(new URL(`./materialize/${name}`, import.meta.url), 'utf8'))
+        .map((name) => readFileSync(new URL(`./runtime-v3/${name}`, import.meta.url), 'utf8'))
         .join('');
-      const source = Buffer.from(encoded, 'base64').toString('utf8');
       const runtimeHash = createHash('sha256').update(source).digest('hex');
 
       if (runtimeHash !== expectedRuntimeHash) {
