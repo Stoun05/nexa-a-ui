@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import {readFileSync, readdirSync} from 'node:fs';
 import {fileURLToPath, URL} from 'node:url';
 import {defineConfig, type Plugin} from 'vite';
@@ -5,6 +6,7 @@ import react from '@vitejs/plugin-react';
 
 const virtualRuntimeId = 'virtual:nexa-runtime';
 const resolvedVirtualRuntimeId = `\0${virtualRuntimeId}`;
+const expectedRuntimeHash = 'c19470b794df83bbf0084c46909915744339bd87403163c50ee01d5cccedc055';
 
 function nexaRuntimePlugin(): Plugin {
   return {
@@ -21,8 +23,14 @@ function nexaRuntimePlugin(): Plugin {
         .sort()
         .map((name) => readFileSync(new URL(`./materialize/${name}`, import.meta.url), 'utf8'))
         .join('');
+      const source = Buffer.from(encoded, 'base64').toString('utf8');
+      const runtimeHash = createHash('sha256').update(source).digest('hex');
 
-      return Buffer.from(encoded, 'base64').toString('utf8');
+      if (runtimeHash !== expectedRuntimeHash) {
+        throw new Error(`Nexa A UI runtime integrity check failed: ${runtimeHash}`);
+      }
+
+      return source;
     },
   };
 }
